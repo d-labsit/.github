@@ -1,0 +1,33 @@
+# Reusable CI for every d-labsit Magento module. A module's own ci.yml only
+# calls this workflow (see templates/ci.yml), so the checks live in one place:
+# ci/check.sh, the same script developers and AI agents run locally.
+name: module-ci
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: module checks
+    # Self-hosted org runner on ci-pr (untrusted box, no secrets): GitHub-hosted
+    # minutes are not used. Pull requests from forks never run here -- the org
+    # also requires approval for outside contributors, this is the second lock.
+    runs-on: [self-hosted, ci-pr]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the shared checks
+        uses: actions/checkout@v4
+        with:
+          repository: d-labsit/.github
+          path: .module-ci
+
+      - name: Run ci/check.sh
+        env:
+          MODULE_CI_DIR: .module-ci
+        run: bash .module-ci/ci/check.sh
