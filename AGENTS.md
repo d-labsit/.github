@@ -13,7 +13,7 @@ repository, whether a person or an AI agent writes it. When a rule and a request
 conflict, follow the rule and say so in the pull request.
 
 ### Platform baseline
-- Magento 2.4 Open Source (`magento/framework` 103+), PHP 8.3 and newer.
+- Magento 2.4 Open Source (`magento/framework` 103+), PHP 8.4 and newer.
   Code must run on both Hyvä and Luma storefronts unless the module is
   explicitly one of the two.
 - Depend on `dlabsit/module-core`. Admin pages hang under the **Dlabsit** menu
@@ -51,7 +51,7 @@ conflict, follow the rule and say so in the pull request.
 ### Tests and checks
 - Logic you add or change gets a unit test under `Test/Unit/`.
 - Before opening a pull request, run the shared checks from the module root
-  inside a Magento dev container (PHP 8.3+, composer, xmllint, phpcs with the
+  inside a Magento dev container (PHP 8.4+, composer, xmllint, phpcs with the
   Magento2 standard):
 
   ```bash

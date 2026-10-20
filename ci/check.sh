@@ -48,8 +48,8 @@ check_phpcs() {
     list=$(files '*.php' '*.phtml' | grep -v -e '^dev/' -e '^Test/Unit/_files/')
     [ -n "$list" ] || return 0
     # Errors only (-n); warnings are advice, not a gate. testVersion follows the
-    # PHP 8.3 baseline, otherwise PHPCompatibility flags 8.2+ syntax.
-    echo "$list" | xargs "$phpcs" --standard=Magento2 -n -q --extensions=php,phtml --runtime-set testVersion 8.3-
+    # PHP 8.4 baseline, otherwise PHPCompatibility flags 8.2+ syntax.
+    echo "$list" | xargs "$phpcs" --standard=Magento2 -n -q --extensions=php,phtml --runtime-set testVersion 8.4-
 }
 
 check_xml() {
