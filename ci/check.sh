@@ -5,7 +5,7 @@
 #
 #   bash <(curl -fsSL https://raw.githubusercontent.com/d-labsit/.github/main/ci/check.sh)
 #
-# Run it from the module root inside a Magento dev container (PHP 8.3+,
+# Run it from the module root inside a Magento dev container (PHP 8.4+,
 # composer, xmllint, phpcs with the Magento2 standard). Module-specific checks
 # (phpstan/phpunit with a Magento dependency set) live in dev/ci/run.sh and are
 # picked up automatically.
