@@ -71,3 +71,33 @@ conflict, follow the rule and say so in the pull request.
   messages follow Conventional Commits (`feat:`, `fix:`, `docs:` …) and say
   why, not only what.
 <!-- END d-labsit shared rules -->
+
+## Maintainer conventions (not copied into modules)
+
+These sit outside the shared block on purpose: they bind D-Labs when releasing
+and setting up a module, and changing the block would turn every module's CI
+red until each copy is updated. `ci/check.sh` warns on most of them; once all
+modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
+
+- **Versions**: a release is a git tag `vX.Y.Z` (semver) with a GitHub release
+  whose notes list the changes (`gh release create vX.Y.Z --generate-notes`,
+  built from the Conventional Commit titles). No `version` field in
+  `composer.json`: the tag is the only truth.
+- **Core dependency**: `"dlabsit/module-core": "^1.2"`. Never `*` or `>=`
+  without an upper bound — that lets a breaking Core 2.0 in.
+- **PHP**: 8.4 is the baseline. Add 8.5 to a module's `php` constraint only
+  once CI has run that module on a PHP 8.5 image.
+- **Dev tools**: `require-dev` equals `templates/composer-dev.json` (the set
+  `dlabsit/module-core` uses); a module with unit tests adds `phpunit/phpunit`.
+- **Tests in CI**: a module with `Test/Unit` or a phpstan/phpunit config ships
+  `composer.ci.json` (Magento packages from the Mage-OS mirror, see
+  `magento2-webp`); CI then runs `ci/module-run.sh`. Only a module with special
+  needs carries its own `dev/ci/run.sh`.
+- **Schema**: `etc/db_schema.xml` always comes with `etc/db_schema_whitelist.json`;
+  no `setup_version` in `etc/module.xml`.
+- **Admin**: configuration under the `dlabsit` tab (never an own `<tab id>`),
+  and a menu item under `Dlabsit_Core::dlabsit`.
+- **Translations**: a module that uses `__()` ships at least one locale besides
+  `en_US` (the Greek and Dutch shops: `el_GR.csv`, `nl_NL.csv`).
+- **Security policy**: the org-wide `SECURITY.md` in this repository applies to
+  every module without its own.
