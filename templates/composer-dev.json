@@ -1,0 +1,7 @@
+{
+    "require-dev": {
+        "magento/magento-coding-standard": "^41.0",
+        "phpstan/phpstan": "^2.3",
+        "bitexpert/phpstan-magento": "^0.44.0"
+    }
+}

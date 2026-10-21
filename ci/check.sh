@@ -6,16 +6,22 @@
 #   bash <(curl -fsSL https://raw.githubusercontent.com/d-labsit/.github/main/ci/check.sh)
 #
 # Run it from the module root inside a Magento dev container (PHP 8.4+,
-# composer, xmllint, phpcs with the Magento2 standard). Module-specific checks
-# (phpstan/phpunit with a Magento dependency set) live in dev/ci/run.sh and are
-# picked up automatically.
+# composer, xmllint, phpcs with the Magento2 standard). phpstan/phpunit run
+# through the module's own dev/ci/run.sh, or else through ci/module-run.sh when
+# the module ships composer.ci.json.
+#
+# Convention checks (marked "soft" below) only warn for now, so no module goes
+# red before it is fixed; DLABSIT_CI_STRICT=1 makes them fail the gate.
 set -uo pipefail
 
-CANONICAL_AGENTS_URL=https://raw.githubusercontent.com/d-labsit/.github/main/AGENTS.md
+RAW_BASE=https://raw.githubusercontent.com/d-labsit/.github/main
+CANONICAL_AGENTS_URL=$RAW_BASE/AGENTS.md
 BEGIN_MARK='<!-- BEGIN d-labsit shared rules -->'
 END_MARK='<!-- END d-labsit shared rules -->'
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)
 
 failed=()
+warned=()
 in_ci() { [ -n "${GITHUB_ACTIONS:-}" ]; }
 group() { if in_ci; then echo "::group::$1"; else echo "== $1"; fi; }
 endgroup() { if in_ci; then echo "::endgroup::"; fi; }
@@ -24,6 +30,21 @@ run() {
     group "$name"
     if "$@"; then echo "ok"; else failed+=("$name"); in_ci && echo "::error::$name failed"; fi
     endgroup
+}
+# Like run, but a failure is a warning unless DLABSIT_CI_STRICT=1.
+soft() {
+    local name=$1; shift
+    if [ "${DLABSIT_CI_STRICT:-0}" = 1 ]; then run "$name" "$@"; return; fi
+    group "$name"
+    local out
+    if out=$("$@" 2>&1); then echo "ok"; endgroup; return; fi
+    echo "$out"
+    endgroup
+    warned+=("$name")
+    if in_ci; then
+        out=${out//'%'/%25}; out=${out//$'\r'/%0D}; out=${out//$'\n'/%0A}
+        echo "::warning title=$name::$out"
+    fi
 }
 
 # Tracked files only: vendor/, generated output and the CI checkout of this
@@ -115,16 +136,118 @@ check_agents() {
     fi
 }
 
+# --- Convention checks (soft) -------------------------------------------------
+
+# Non-test PHP: Test/ and dev/ may do what production code must not.
+src_php() { files '*.php' '*.phtml' | grep -v -e '^Test/' -e '^dev/'; }
+# composer.json field via PHP (always present: composer needs it).
+composer_get() {
+    php -r '$j = json_decode((string) @file_get_contents("composer.json"), true);
+        $v = $j; foreach (array_slice($argv, 1) as $k) { $v = is_array($v) ? ($v[$k] ?? null) : null; }
+        if (is_string($v)) { echo $v; }' -- "$@"
+}
+is_core() { [ "$(composer_get name)" = dlabsit/module-core ]; }
+needs_core() { [ -n "$(composer_get require dlabsit/module-core)" ]; }
+
+# Without the whitelist Magento refuses to drop or rename columns and indexes later.
+check_db_whitelist() {
+    [ -z "$(files etc/db_schema.xml)" ] || [ -f etc/db_schema_whitelist.json ] \
+        || { echo "etc/db_schema.xml without etc/db_schema_whitelist.json (bin/magento setup:db-declaration:generate-whitelist)"; return 1; }
+}
+
+# The git tag vX.Y.Z is the version; a "version" field is a second truth that drifts.
+check_composer_version() {
+    [ -z "$(composer_get version)" ] || { echo "composer.json has \"version\": remove it, the tag vX.Y.Z is the version"; return 1; }
+}
+
+# '*' or '>=' without an upper bound lets a breaking Core 2.0 in.
+check_core_constraint() {
+    local c
+    c=$(composer_get require dlabsit/module-core)
+    [ -n "$c" ] || return 0
+    if [ "$c" = '*' ] || { [[ $c == *'>='* ]] && [[ $c != *'<'* ]]; }; then
+        echo "dlabsit/module-core constraint \"$c\" has no upper bound: use ^1.2"; return 1
+    fi
+}
+
+# Core defines the one dlabsit tab; modules put their sections in it.
+check_config_tab() {
+    is_core && return 0
+    local out
+    out=$(files 'etc/adminhtml/system.xml' | xargs -r grep -HnE '<tab[[:space:]]+id=' | grep -v 'id="dlabsit"')
+    [ -z "$out" ] || { echo "$out"; echo "own <tab id=...> in system.xml: use <tab>dlabsit</tab> from Dlabsit_Core"; return 1; }
+}
+
+# A module with admin config that depends on Core gets an entry under Core's
+# Dlabsit menu. Modules without system.xml or without Core are skipped.
+check_menu() {
+    is_core && return 0
+    [ -n "$(files etc/adminhtml/system.xml)" ] && needs_core || return 0
+    grep -qs 'parent="Dlabsit_Core::dlabsit"' etc/adminhtml/menu.xml \
+        || { echo "admin config without a menu item under Dlabsit_Core::dlabsit (etc/adminhtml/menu.xml)"; return 1; }
+}
+
+check_object_manager() {
+    local out
+    out=$(src_php | xargs -r grep -Hn 'ObjectManager::getInstance')
+    [ -z "$out" ] || { echo "$out"; echo "ObjectManager::getInstance() outside Test/: use constructor injection"; return 1; }
+}
+
+# Declarative schema and patches made setup_version obsolete.
+check_setup_version() {
+    ! grep -qs 'setup_version' etc/module.xml || { echo "etc/module.xml has setup_version: remove it"; return 1; }
+}
+
+# check_i18n compares locales; this makes sure there is something to compare.
+check_i18n_locale() {
+    [ -n "$(src_php | xargs -r grep -lE '(^|[^A-Za-z0-9_])__\(')" ] || return 0
+    ls i18n/*.csv 2>/dev/null | grep -qv '/en_US\.csv$' \
+        || { echo "__() is used but i18n/ has no locale besides en_US (add at least el_GR.csv / nl_NL.csv)"; return 1; }
+}
+
+has_tests() { [ -n "$(files 'Test/Unit/*' phpunit.xml phpunit.xml.dist phpstan.neon phpstan.neon.dist phpstan.dist.neon)" ]; }
+check_tests_wired() {
+    has_tests || return 0
+    [ -f dev/ci/run.sh ] || [ -f composer.ci.json ] \
+        || { echo "tests not run in CI: the module has Test/Unit or a phpstan/phpunit config but no composer.ci.json (see d-labsit/.github README)"; return 1; }
+}
+
+module_run() {
+    local script
+    if [ -n "${MODULE_CI_DIR:-}" ] && [ -f "$MODULE_CI_DIR/ci/module-run.sh" ]; then
+        script=$MODULE_CI_DIR/ci/module-run.sh
+    elif [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/module-run.sh" ]; then
+        script=$SCRIPT_DIR/module-run.sh
+    else
+        bash <(curl -fsSL "$RAW_BASE/ci/module-run.sh"); return
+    fi
+    bash "$script"
+}
+
 run "composer.json valid" check_composer
 run "PHP syntax" check_php_lint
 run "phpcs (Magento2, errors)" check_phpcs
 run "XML well-formed" check_xml
 run "i18n complete" check_i18n
 run "AGENTS.md up to date" check_agents
+soft "db_schema whitelist" check_db_whitelist
+soft "no version in composer.json" check_composer_version
+soft "module-core constraint bounded" check_core_constraint
+soft "config under the dlabsit tab" check_config_tab
+soft "menu under Dlabsit_Core::dlabsit" check_menu
+soft "no ObjectManager::getInstance()" check_object_manager
+soft "no setup_version" check_setup_version
+soft "i18n has a non-en_US locale" check_i18n_locale
+soft "tests wired into CI" check_tests_wired
 if [ -f dev/ci/run.sh ]; then
     run "module checks (dev/ci/run.sh)" bash dev/ci/run.sh
+elif [ -f composer.ci.json ] && has_tests; then
+    run "module checks (ci/module-run.sh)" module_run
 fi
 
+if [ ${#warned[@]} -gt 0 ]; then
+    printf 'WARNING (fatal with DLABSIT_CI_STRICT=1): %s\n' "${warned[@]}"
+fi
 if [ ${#failed[@]} -gt 0 ]; then
     printf 'FAILED: %s\n' "${failed[@]}"
     exit 1
