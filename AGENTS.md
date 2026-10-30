@@ -103,9 +103,11 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   break. Themes (`hyva-*`) and `magento2-language-packs` are not modules and
   skip the admin rules below.
 - **Admin menu** (the Mageplaza layout): Core owns the top-level menu. Each
-  module adds one heading `Dlabsit_<Name>::menu` (title = product name, no
-  action) under `Dlabsit_Core::dlabsit`; under it the module's own pages and,
-  last, **Configuration**, which opens its config section. A module without
+  module adds one heading `Dlabsit_<Name>::dlabsit_menu` (title = product
+  name, no action) under `Dlabsit_Core::dlabsit`; under it the module's own
+  pages and, last, **Configuration** (`Dlabsit_<Name>::dlabsit_config`), which
+  opens its config section. The `dlabsit_` prefix keeps Magento's global
+  `.item-<id>` icon CSS off our items (see Core's `menu.xml`). A module without
   pages still gets the heading with only Configuration. A page a merchant works
   in daily (orders, requests) may appear once more in the native Magento menu
   (Sales, Catalog); configuration never does.
@@ -136,8 +138,10 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   | Legal, tax and invoices | Cookie Consent 500, EU VAT and VIES 510, EU VIES Check 520, Invoice PDF Email 530, Withdrawal button 540 |
   | Store tools | Order Numbers 600, WebP Images 610 |
 
-- **ACL**: `Dlabsit_<Name>::menu` under `Dlabsit_Core::dlabsit`, `::config` for
-  the section, one resource per page.
+- **ACL**: one root resource per module under `Dlabsit_Core::dlabsit`, one
+  child per page and one for the config section; the heading uses the root.
+  Never rename an existing ACL id: admin roles store them, and a renamed id
+  silently takes the module away from every restricted role.
 - **Module info (Core dashboard)**: every module registers with
   `Dlabsit\Core\Model\ModuleRegistry` in `etc/di.xml`: `code`, `name`,
   `description`, `composer_name` (exactly the one in `composer.json`),
