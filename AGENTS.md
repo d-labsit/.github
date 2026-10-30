@@ -95,8 +95,35 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   needs carries its own `dev/ci/run.sh`.
 - **Schema**: `etc/db_schema.xml` always comes with `etc/db_schema_whitelist.json`;
   no `setup_version` in `etc/module.xml`.
-- **Admin**: configuration under the `dlabsit` tab (never an own `<tab id>`),
-  and a menu item under `Dlabsit_Core::dlabsit`.
+- **Naming**: repository `d-labsit/magento2-<name>` (lowercase, hyphens, no
+  `dlabsit-` inside the name: the organization already says whose it is),
+  Magento module `Dlabsit_<Name>`, namespace `Dlabsit\<Name>`. A new module's
+  composer name is `dlabsit/magento2-<name>`, the same text as its repository.
+  A published composer name never changes: every shop that requires it would
+  break. Themes (`hyva-*`) and `magento2-language-packs` are not modules and
+  skip the admin rules below.
+- **Admin menu** (the Mageplaza layout): Core owns the top-level menu. Each
+  module adds one heading `Dlabsit_<Name>::menu` (title = product name, no
+  action) under `Dlabsit_Core::dlabsit`; under it the module's own pages and,
+  last, **Configuration**, which opens its config section. A module without
+  pages still gets the heading with only Configuration. A page a merchant works
+  in daily (orders, requests) may appear once more in the native Magento menu
+  (Sales, Catalog); configuration never does.
+- **Configuration**: one section under Core's `dlabsit` tab (never an own
+  `<tab id>`), id `dlabsit_<name>`, first group `general` (an `enabled` switch
+  when the module can be switched off). Carriers and payment methods stay where
+  Magento puts them (`carriers`, `payment`); their Configuration item links
+  there. Never rename an existing section id: the stored settings live under it.
+- **ACL**: `Dlabsit_<Name>::menu` under `Dlabsit_Core::dlabsit`, `::config` for
+  the section, one resource per page.
+- **Core dashboard**: every module registers its `ModuleInfo` with Core's
+  `ModuleRegistryInterface` (`etc/adminhtml/di.xml`), so the dashboard lists it
+  with version, licence tier, compatibility, documentation and config link.
+- **Documentation**: `README.md` with these headings, in this order: what it
+  does, requirements, installation, configuration (the admin path), usage,
+  troubleshooting, licence. Changes live in the GitHub release notes of the
+  tag, not in a `CHANGELOG.md`. A `LICENSE` file that matches `composer.json`.
+  Screenshots and longer how-tos go in `docs/`.
 - **Translations**: a module that uses `__()` ships at least one locale besides
   `en_US` (the Greek and Dutch shops: `el_GR.csv`, `nl_NL.csv`).
 - **Security policy**: the org-wide `SECURITY.md` in this repository applies to
