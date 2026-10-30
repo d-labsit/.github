@@ -62,7 +62,10 @@ conflict, follow the rule and say so in the pull request.
   bash <(curl -fsSL https://raw.githubusercontent.com/d-labsit/.github/main/ci/check.sh)
   ```
 
-  It checks `composer.json`, PHP syntax, the Magento2 coding standard (errors),
+  It checks `composer.json`, PHP syntax, the Magento2 coding standard (errors,
+  and warnings of severity 7 and up: escaping, discouraged functions, empty
+  catch blocks, performance; a justified exception is an inline
+  `// phpcs:ignore <Sniff> -- <reason>`),
   XML well-formedness, that every locale CSV has the same phrases, and this
   file. If the module has `dev/ci/run.sh` (phpstan, phpunit), it runs that too.
   CI runs exactly the same script on every pull request.

@@ -73,6 +73,19 @@ check_phpcs() {
     echo "$list" | xargs "$phpcs" --standard=Magento2 -n -q --extensions=php,phtml --runtime-set testVersion 8.4-
 }
 
+# Substantive Magento2 warnings (severity 7 and up: escaping, discouraged
+# functions, empty catch blocks, performance). The lower ones (docblocks, line
+# length) stay advice: typed code and phpstan level 6 cover what they ask for.
+check_phpcs_warnings() {
+    local phpcs list
+    phpcs=$(command -v phpcs || echo vendor/bin/phpcs)
+    [ -x "$phpcs" ] || return 0
+    list=$(files '*.php' '*.phtml' | grep -v -e '^dev/' -e '^Test/')
+    [ -n "$list" ] || return 0
+    echo "$list" | xargs "$phpcs" --standard=Magento2 --error-severity=0 --warning-severity=7 -q \
+        --extensions=php,phtml --runtime-set testVersion 8.4- --runtime-set ignore_warnings_on_exit 0
+}
+
 check_xml() {
     local rc=0 f
     while IFS= read -r f; do
@@ -273,6 +286,7 @@ soft "no setup_version" check_setup_version
 soft "i18n has a non-en_US locale" check_i18n_locale
 soft "tests wired into CI" check_tests_wired
 soft "phpstan level 6" check_phpstan_level
+soft "Magento2 warnings (severity 7+)" check_phpcs_warnings
 if [ -f dev/ci/run.sh ]; then
     run "module checks (dev/ci/run.sh)" bash dev/ci/run.sh
 elif [ -f composer.ci.json ] && has_tests; then

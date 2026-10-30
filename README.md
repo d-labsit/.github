@@ -66,6 +66,9 @@ passes.
 - unit tests or a phpstan/phpunit config that CI does not run
 - no phpstan config, or a level below 6 (language packs and modules without PHP
   are skipped)
+- Magento2 coding-standard warnings of severity 7 and up outside `Test/` and
+  `dev/` (escaping, discouraged functions, empty catch blocks, performance);
+  docblock and line-length warnings (severity 6 and lower) are not checked
 
 ## Pinning the workflow (proposal, not done)
 
