@@ -111,14 +111,43 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   (Sales, Catalog); configuration never does.
 - **Configuration**: one section under Core's `dlabsit` tab (never an own
   `<tab id>`), id `dlabsit_<name>`, first group `general` (an `enabled` switch
-  when the module can be switched off). Carriers and payment methods stay where
-  Magento puts them (`carriers`, `payment`); their Configuration item links
-  there. Never rename an existing section id: the stored settings live under it.
+  when the module can be switched off). Never rename an existing section id:
+  the stored settings live under it.
+- **Carriers and payment methods: in both places, one value.** The full
+  settings sit in the module's `dlabsit_<name>` section; the fields a merchant
+  expects next to Magento's own methods (enabled, title, price, countries,
+  sort order) also appear in `carriers/<code>` (Stores > Configuration > Sales >
+  Delivery Methods) or `payment/<code>` (Payment Methods). Both fields carry the
+  same `<config_path>` (`carriers/<code>/active`), so switching the method off
+  in one place switches it off in the other. The native group ends with a link
+  to the D-Labs IT section. Courier Center and ELTA Courier are the example.
+- **Order**: one number per module, used as `sortOrder` of its menu heading,
+  its config section and its `sort_order` on the dashboard, so all three list
+  the modules the same way: grouped by what they do, alphabetical inside a
+  group. Core's own pages are 10-30. A new module takes the free number at its
+  alphabetical place in its group.
+
+  | Group | Modules (number) |
+  |---|---|
+  | Marketplaces | eBay 100, eMAG 110, Shopflix 120, Skroutz 130, Trendyol 140 |
+  | Shipping | BOX NOW 200, Courier Center 210, ELTA Courier 220, GLS Label 230 |
+  | Checkout and payment | Cash on delivery and pickup 300, Hyvä Checkout 310 |
+  | Marketing and feeds | GA4 dataLayer 400, Omnisend 420, SEO 430, XML Feed 440 |
+  | Legal, tax and invoices | Cookie Consent 500, EU VAT and VIES 510, EU VIES Check 520, Invoice PDF Email 530, Withdrawal button 540 |
+  | Store tools | Order Numbers 600, WebP Images 610 |
+
 - **ACL**: `Dlabsit_<Name>::menu` under `Dlabsit_Core::dlabsit`, `::config` for
   the section, one resource per page.
-- **Core dashboard**: every module registers its `ModuleInfo` with Core's
-  `ModuleRegistryInterface` (`etc/adminhtml/di.xml`), so the dashboard lists it
-  with version, licence tier, compatibility, documentation and config link.
+- **Module info (Core dashboard)**: every module registers with
+  `Dlabsit\Core\Model\ModuleRegistry` in `etc/di.xml`: `code`, `name`,
+  `description`, `composer_name` (exactly the one in `composer.json`),
+  `license_tier`, `min_php_version`, `min_magento_version`, `repository_url`,
+  `documentation_url`, `config_section`, `sort_order`, `depends_on`. No
+  `version`: Core reads the installed version from Composer, so the dashboard
+  always shows what is really deployed. CI checks that the entry exists, that
+  `composer_name` matches and that `config_section` exists. A change to the
+  module's name, description, requirements or section updates this entry in
+  the same pull request.
 - **Documentation**: `README.md` with these headings, in this order: what it
   does, requirements, installation, configuration (the admin path), usage,
   troubleshooting, licence. Changes live in the GitHub release notes of the
