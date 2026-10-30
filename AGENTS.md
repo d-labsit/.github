@@ -41,6 +41,30 @@ conflict, follow the rule and say so in the pull request.
 - Do not change the `license` in `composer.json`: it is a business decision
   (MIT for free modules, proprietary for paid ones).
 
+### Magento architecture
+Follow Adobe's Technical Guidelines
+(https://developer.adobe.com/commerce/php/coding-standards/technical-guidelines);
+where this file is stricter, this file wins. The rules that matter most here:
+- Nothing visitor-specific in server-rendered HTML: pages are full-page
+  cached. Session, cookie and customer data reach the page through a
+  CustomerData section or JavaScript, never through a block, view model or
+  plugin that renders into the page. Reading the request (URL) is fine.
+- Never swallow an exception silently: log it or handle it with a workaround.
+  No business logic through exceptions. An error a user sees says what
+  happened and what to do.
+- Plugins are stateless. Prefer before/after plugins; an around plugin needs
+  its reason on the line above. Observers do not change event data (use a
+  plugin). Cron jobs are idempotent.
+- Data changes only through POST actions. SQL only through the framework or
+  prepared statements.
+- Every dependency is in `composer.json`; from other modules use only `@api`
+  code and service contracts.
+- No `Helper` classes: put code in a service, view model or the class it
+  belongs to. Composition over inheritance.
+- Not adopted: the UI Component framework (Hyvä uses Alpine.js) and SOAP.
+- A justified exception to a rule CI checks is marked where it happens:
+  `// adobe-tg: <reason>`.
+
 ### Translations
 - Every text a shopper or admin can see goes through `__()` (PHP/templates) or
   `translate="..."` (XML).
