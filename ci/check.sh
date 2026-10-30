@@ -86,6 +86,49 @@ check_phpcs_warnings() {
         --extensions=php,phtml --runtime-set testVersion 8.4- --runtime-set ignore_warnings_on_exit 0
 }
 
+
+# 9.4/9.10: session and cookie state in cacheable code ends up in the
+# full-page cache and is served to the next visitor. The request is fine: the
+# URL is part of the cache key. Controllers and plugins on controllers may use
+# session and cookies.
+check_session_in_cacheable_code() {
+    local out
+    out=$(src_php | grep -E '^(Block|ViewModel|Model|Plugin|Observer|Helper)/' | grep -v '^Plugin/Controller/' \
+        | xargs -r grep -HnE '^\s*(private|protected|public)?\s*(readonly\s+)?\\?([A-Za-z\\]*\\)?(SessionManagerInterface|Session|CookieManagerInterface)\s+\$' \
+        | grep -vE 'adobe-tg: ' )
+    [ -z "$out" ] || { echo "$out"; echo "session/cookie injected in code that can render into a cached page: one visitor's state can be served to the next (Adobe TG 9.4, 9.10). Move it to a controller, a CustomerData section or JS; or put '// adobe-tg: <why this never renders into a cached page>' on that line"; return 1; }
+}
+
+# 4.x + extension best practices: around plugins cost a stack frame on every
+# call and hide the original; before/after plugins are the default.
+check_around_plugins() {
+    local out
+    out=$(src_php | grep '^Plugin/' | xargs -r grep -HnE -B2 'public function around[A-Z]' \
+        | awk '/adobe-tg: /{skip=1} /public function around[A-Z]/{ if (!skip) print; skip=0 } /^--$/{skip=0}')
+    [ -z "$out" ] || { echo "$out"; echo "around plugin without a reason: use a before/after plugin, or put '// adobe-tg: <why around is needed>' on the line above"; return 1; }
+}
+
+# Extension best practices: no Helper catch-all classes; put the code in the
+# class it belongs to (service, view model, value object).
+check_helper_classes() {
+    local out
+    out=$(src_php | grep -E '(^|/)Helper/[^/]+\.php$' | xargs -r grep -L 'adobe-tg: ')
+    [ -z "$out" ] || { echo "$out"; echo "Helper classes: move the code to a service, view model or the class it operates on (Adobe extension best practices). An existing helper that stays gets '// adobe-tg: legacy helper, no new methods' at the class"; return 1; }
+}
+
+# 15.7.2: data changes only through POST. A GET action that saves or deletes is
+# reachable by a link or an image tag (CSRF).
+check_get_actions_change_data() {
+    local f out=""
+    for f in $(src_php | grep '^Controller/'); do
+        grep -q 'HttpGetActionInterface' "$f" || continue
+        grep -q 'HttpPostActionInterface' "$f" && continue
+        grep -q 'adobe-tg: ' "$f" && continue
+        grep -qE '\->(save|delete|deleteById)\(' "$f" && out+="$f"$'\n'
+    done
+    [ -z "$out" ] || { echo "$out"; echo "GET action that saves or deletes: data changes go through POST (Adobe TG 15.7.2), or put '// adobe-tg: <why GET is safe here>' at the class"; return 1; }
+}
+
 check_xml() {
     local rc=0 f
     while IFS= read -r f; do
@@ -155,10 +198,25 @@ check_agents() {
 src_php() { files '*.php' '*.phtml' | grep -v -e '^Test/' -e '^dev/'; }
 # composer.json field via PHP (always present: composer needs it).
 composer_get() {
-    php -r '$j = json_decode((string) @file_get_contents("composer.json"), true);
+    php -r '$j = json_decode((string) @file_get_contents(getenv("COMPOSER_JSON") ?: "composer.json"), true);
         $v = $j; foreach (array_slice($argv, 1) as $k) { $v = is_array($v) ? ($v[$k] ?? null) : null; }
         if (is_string($v)) { echo $v; }' -- "$@"
 }
+# A package can hold several modules in sub-directories (magento2-ga4-datalayer:
+# DataLayer/, TagManager/). Module-level checks run once per module directory,
+# with the package's composer.json.
+module_dirs() {
+    if [ -f registration.php ]; then echo .; return; fi
+    files '*/registration.php' | xargs -r -n1 dirname | grep -v -e '^dev' -e '^Test' | sort -u
+}
+per_module() {
+    local fn=$1 d rc=0 root=$PWD
+    for d in $(module_dirs); do
+        (cd "$d" && COMPOSER_JSON="$root/composer.json" "$fn") || rc=1
+    done
+    return $rc
+}
+
 is_core() { [ "$(composer_get name)" = dlabsit/module-core ]; }
 needs_core() { [ -n "$(composer_get require dlabsit/module-core)" ]; }
 
@@ -278,15 +336,19 @@ run "AGENTS.md up to date" check_agents
 soft "db_schema whitelist" check_db_whitelist
 soft "no version in composer.json" check_composer_version
 soft "module-core constraint bounded" check_core_constraint
-soft "config under the dlabsit tab" check_config_tab
-soft "menu under Dlabsit_Core::dlabsit" check_menu
-soft "module info on the Core dashboard" check_module_info
+soft "config under the dlabsit tab" per_module check_config_tab
+soft "menu under Dlabsit_Core::dlabsit" per_module check_menu
+soft "module info on the Core dashboard" per_module check_module_info
 soft "no ObjectManager::getInstance()" check_object_manager
 soft "no setup_version" check_setup_version
-soft "i18n has a non-en_US locale" check_i18n_locale
+soft "i18n has a non-en_US locale" per_module check_i18n_locale
 soft "tests wired into CI" check_tests_wired
 soft "phpstan level 6" check_phpstan_level
 soft "Magento2 warnings (severity 7+)" check_phpcs_warnings
+soft "no session/cookie in cacheable code (Adobe TG 9)" check_session_in_cacheable_code
+soft "around plugins have a reason (Adobe TG 4)" check_around_plugins
+soft "no Helper classes" check_helper_classes
+soft "GET actions do not change data (Adobe TG 15)" check_get_actions_change_data
 if [ -f dev/ci/run.sh ]; then
     run "module checks (dev/ci/run.sh)" bash dev/ci/run.sh
 elif [ -f composer.ci.json ] && has_tests; then

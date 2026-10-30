@@ -15,6 +15,7 @@
 - [ ] Works on Hyvä and Luma (or the module is for one of them)
 - [ ] New settings have a default in `etc/config.xml` and an ACL resource
 - [ ] README updated when behaviour or configuration changed
+- [ ] Adobe Technical Guidelines: nothing visitor-specific in cached HTML, no silent catch, data changes via POST, before/after plugins, no Helper classes
 - [ ] No secrets, customer data or dumps in the diff
 
 Only D-Labs merges and releases (see `CONTRIBUTING.md`).
