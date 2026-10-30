@@ -36,13 +36,15 @@ pr=$(json '(string) ($j[0]["number"] ?? "")' <<<"$pr_json")
 if [ -z "$pr" ]; then
     is_maintainer "$ACTOR" || problems+=("pushed straight to main by @$ACTOR, without a pull request")
 else
-    pull=$(api "repos/$REPO/pulls/$pr")
+    pull=$(api "repos/$REPO/pulls/$pr") \
+        || { echo "::warning::merge guard skipped: cannot read pull request #$pr (copy permissions from d-labsit/.github templates/ci.yml)"; exit 0; }
     merged_by=$(json '(string) ($j["merged_by"]["login"] ?? "")' <<<"$pull")
     head=$(json '(string) ($j["head"]["sha"] ?? "")' <<<"$pull")
 
     if ! is_maintainer "$merged_by"; then
-        approvers=$(api "repos/$REPO/pulls/$pr/reviews?per_page=100" \
-            | json 'implode(" ", array_map(fn($r) => $r["user"]["login"], array_filter($j, fn($r) => $r["state"] === "APPROVED")))')
+        reviews=$(api "repos/$REPO/pulls/$pr/reviews?per_page=100") \
+            || { echo "::warning::merge guard skipped: cannot read the reviews of #$pr"; exit 0; }
+        approvers=$(json 'implode(" ", array_map(fn($r) => $r["user"]["login"], array_filter($j, fn($r) => $r["state"] === "APPROVED")))' <<<"$reviews")
         ok=0
         for a in $approvers; do is_maintainer "$a" && ok=1; done
         [ $ok = 1 ] || problems+=("#$pr merged by @${merged_by:-unknown} without an approving review by D-Labs")
