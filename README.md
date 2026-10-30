@@ -69,6 +69,10 @@ passes.
 - Magento2 coding-standard warnings of severity 7 and up outside `Test/` and
   `dev/` (escaping, discouraged functions, empty catch blocks, performance);
   docblock and line-length warnings (severity 6 and lower) are not checked
+- Adobe Technical Guidelines (see `AGENTS.md`, Magento architecture): session
+  or cookie injected in a block, view model, model, plugin or observer; an
+  around plugin without a reason; a `Helper` class; a GET action that saves or
+  deletes. A justified exception carries `// adobe-tg: <reason>` on the spot
 
 ## Pinning the workflow (proposal, not done)
 
