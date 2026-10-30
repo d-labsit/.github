@@ -185,6 +185,26 @@ check_menu() {
     [ -n "$(files etc/adminhtml/system.xml)" ] && needs_core || return 0
     grep -qs 'parent="Dlabsit_Core::dlabsit"' etc/adminhtml/menu.xml \
         || { echo "admin config without a menu item under Dlabsit_Core::dlabsit (etc/adminhtml/menu.xml)"; return 1; }
+    grep -qsE 'id="Dlabsit_[A-Za-z0-9]+::menu"' etc/adminhtml/menu.xml \
+        || { echo "no menu heading Dlabsit_<Name>::menu with the module's pages and Configuration under it (see AGENTS.md, Admin menu)"; return 1; }
+}
+
+# The Core dashboard is the module list; its entry must match the module.
+check_module_info() {
+    is_core && return 0
+    needs_core || return 0
+    local di name section
+    di=$(cat etc/di.xml etc/adminhtml/di.xml 2>/dev/null | tr '\n' ' ')
+    [[ $di == *'Dlabsit\Core\Model\ModuleRegistry'* ]] \
+        || { echo "not registered with Dlabsit\\Core\\Model\\ModuleRegistry in etc/di.xml: the module is missing from the dashboard"; return 1; }
+    name=$(composer_get name)
+    grep -qE "name=\"composer_name\"[^>]*>[[:space:]]*${name}[[:space:]]*<" <<<"$di" \
+        || { echo "ModuleRegistry entry: composer_name is not \"$name\""; return 1; }
+    ! grep -q 'name="version"' <<<"$di" \
+        || { echo "ModuleRegistry entry has \"version\": remove it, Core reads the installed version from Composer"; return 1; }
+    section=$(grep -oE 'name="config_section"[^>]*>[[:space:]]*[a-z0-9_]+' <<<"$di" | sed -E 's/.*>[[:space:]]*//')
+    [ -z "$section" ] || grep -qs "<section id=\"$section\"" etc/adminhtml/system.xml \
+        || { echo "ModuleRegistry config_section \"$section\" is not a <section> in etc/adminhtml/system.xml"; return 1; }
 }
 
 check_object_manager() {
@@ -235,6 +255,7 @@ soft "no version in composer.json" check_composer_version
 soft "module-core constraint bounded" check_core_constraint
 soft "config under the dlabsit tab" check_config_tab
 soft "menu under Dlabsit_Core::dlabsit" check_menu
+soft "module info on the Core dashboard" check_module_info
 soft "no ObjectManager::getInstance()" check_object_manager
 soft "no setup_version" check_setup_version
 soft "i18n has a non-en_US locale" check_i18n_locale
