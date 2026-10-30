@@ -213,6 +213,18 @@ check_object_manager() {
     [ -z "$out" ] || { echo "$out"; echo "ObjectManager::getInstance() outside Test/: use constructor injection"; return 1; }
 }
 
+# Level 6 is the org minimum; errors from before live in phpstan-baseline.neon.
+check_phpstan_level() {
+    [ "$(composer_get type)" = magento2-language ] && return 0
+    [ -n "$(src_php)" ] || return 0
+    local conf lvl
+    conf=$(files phpstan.neon phpstan.neon.dist phpstan.dist.neon | head -1)
+    [ -n "$conf" ] || { echo "no phpstan config: add phpstan.neon with level: 6 and composer.ci.json (see AGENTS.md)"; return 1; }
+    lvl=$(grep -oE '^[[:space:]]*level:[[:space:]]*[0-9a-z]+' "$conf" | head -1 | sed -E 's/.*:[[:space:]]*//')
+    [ "$lvl" = max ] || [ "${lvl:-0}" -ge 6 ] 2>/dev/null \
+        || { echo "$conf: phpstan level ${lvl:-unset}, the minimum is 6 (existing errors go in phpstan-baseline.neon)"; return 1; }
+}
+
 # Declarative schema and patches made setup_version obsolete.
 check_setup_version() {
     ! grep -qs 'setup_version' etc/module.xml || { echo "etc/module.xml has setup_version: remove it"; return 1; }
@@ -260,6 +272,7 @@ soft "no ObjectManager::getInstance()" check_object_manager
 soft "no setup_version" check_setup_version
 soft "i18n has a non-en_US locale" check_i18n_locale
 soft "tests wired into CI" check_tests_wired
+soft "phpstan level 6" check_phpstan_level
 if [ -f dev/ci/run.sh ]; then
     run "module checks (dev/ci/run.sh)" bash dev/ci/run.sh
 elif [ -f composer.ci.json ] && has_tests; then

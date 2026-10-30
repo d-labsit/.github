@@ -9,6 +9,11 @@ on:
 
 permissions:
   contents: read
+  # merge guard (push to main): read the pull request, its reviews and checks,
+  # and open an issue when a commit reached main without them.
+  pull-requests: read
+  checks: read
+  issues: write
 
 jobs:
   module:

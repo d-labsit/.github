@@ -50,6 +50,10 @@ conflict, follow the rule and say so in the pull request.
 
 ### Tests and checks
 - Logic you add or change gets a unit test under `Test/Unit/`.
+- phpstan runs at level 6 at least (`level: 6` in `phpstan.neon`). Errors that
+  existed before a module reached level 6 are listed in `phpstan-baseline.neon`:
+  new or changed code adds nothing to it, and code you fix loses its entries
+  (phpstan reports entries that no longer match).
 - Before opening a pull request, run the shared checks from the module root
   inside a Magento dev container (PHP 8.4+, composer, xmllint, phpcs with the
   Magento2 standard):
@@ -67,6 +71,8 @@ conflict, follow the rule and say so in the pull request.
 - Work on a branch from `main` and open a pull request; never push to `main`.
 - Never create tags, releases or version bumps — D-Labs releases modules.
 - A pull request needs green CI and a review by D-Labs before it is merged.
+  Only D-Labs merges: never merge your own pull request, even when GitHub
+  lets you.
 - Code, comments, commit messages and pull requests are in English. Commit
   messages follow Conventional Commits (`feat:`, `fix:`, `docs:` …) and say
   why, not only what.
@@ -163,3 +169,15 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   `en_US` (the Greek and Dutch shops: `el_GR.csv`, `nl_NL.csv`).
 - **Security policy**: the org-wide `SECURITY.md` in this repository applies to
   every module without its own.
+- **phpstan**: level 6 for every module with PHP (`check.sh` warns below it).
+  Raising a module: set `level: 6`, generate `phpstan-baseline.neon` for what
+  fails today, include it from `phpstan.neon`. The baseline only shrinks; a
+  pull request that grows it needs a reason in its description.
+- **Merge guard**: the free GitHub plan has no branch protection on private
+  repositories, so nothing technically stops a collaborator with write access.
+  On every push to `main`, `ci/merge-guard.sh` checks that the commit came in
+  through a pull request with a successful "module checks" run, merged by or
+  approved by a D-Labs account (`dlabsnl`, `dlabsit`); otherwise the run fails
+  and an issue is opened and assigned to D-Labs. It needs the permissions in
+  `templates/ci.yml`; a module with an older `ci.yml` gets a warning instead.
+  Outside collaborators get write access only on the modules they work on.
