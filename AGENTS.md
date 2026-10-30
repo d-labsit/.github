@@ -127,14 +127,16 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   its config section and its `sort_order` on the dashboard, so all three list
   the modules the same way: grouped by what they do, alphabetical inside a
   group. Core's own pages are 10-30. A new module takes the free number at its
-  alphabetical place in its group.
+  alphabetical place in its group. A package with several modules
+  (`magento2-ga4-datalayer`: DataLayer + TagManager) gives each module its own
+  number, heading and registration.
 
   | Group | Modules (number) |
   |---|---|
   | Marketplaces | eBay 100, eMAG 110, Shopflix 120, Skroutz 130, Trendyol 140 |
   | Shipping | BOX NOW 200, Courier Center 210, ELTA Courier 220, GLS Label 230 |
   | Checkout and payment | Cash on delivery and pickup 300, Hyvä Checkout 310 |
-  | Marketing and feeds | GA4 dataLayer 400, Omnisend 420, SEO 430, XML Feed 440 |
+  | Marketing and feeds | GA4 Data Layer 400, Tag Manager 410, Omnisend 420, SEO 430, XML Feed 440 |
   | Legal, tax and invoices | Cookie Consent 500, EU VAT and VIES 510, EU VIES Check 520, Invoice PDF Email 530, Withdrawal button 540 |
   | Store tools | Order Numbers 600, WebP Images 610 |
 
