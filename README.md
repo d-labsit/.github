@@ -6,6 +6,8 @@ Shared tooling for the D-Labs IT Magento 2 modules in this organization.
 |---|---|
 | `AGENTS.md` | The rules every module follows. Each module copies the block between the markers into its own `AGENTS.md`; `CLAUDE.md` imports it with `@AGENTS.md`. Below the block: maintainer conventions (versions, Core constraint, PHP, tests) that are not copied. |
 | `ci/check.sh` | The quality gate: composer.json, PHP syntax, phpcs (Magento2, errors), XML, i18n completeness, AGENTS.md drift, convention checks (see below), plus phpstan/phpunit. |
+| `ci/merge-guard.sh` | Runs on every push to `main`: warns (failed run + issue for D-Labs) when a commit reached `main` without a pull request, green CI or a D-Labs review. See `AGENTS.md`, Merge guard. |
+| `CONTRIBUTING.md`, `pull_request_template.md` | How to contribute to a module, and the checklist every pull request shows. GitHub uses them for every module in the organization without its own. |
 | `ci/module-run.sh` | Default phpstan/phpunit run for a module that ships `composer.ci.json` but no `dev/ci/run.sh`. |
 | `.github/workflows/module-ci.yml` | Reusable workflow that runs `ci/check.sh` on the self-hosted `ci-pr` org runner. |
 | `templates/` | The `ci.yml` and `CLAUDE.md` every module carries, and `composer-dev.json`: the `require-dev` set (the same as `dlabsit/module-core`). |
@@ -62,6 +64,8 @@ passes.
 - `setup_version` in `etc/module.xml`
 - `__()` in the code but no `i18n/*.csv` besides `en_US`
 - unit tests or a phpstan/phpunit config that CI does not run
+- no phpstan config, or a level below 6 (language packs and modules without PHP
+  are skipped)
 
 ## Pinning the workflow (proposal, not done)
 
