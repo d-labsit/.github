@@ -52,6 +52,12 @@ passes.
 - an own `<tab id="...">` in `system.xml` instead of Core's `dlabsit` tab
 - admin config (`system.xml`) in a module that requires Core, without a menu
   item under `Dlabsit_Core::dlabsit` in `etc/adminhtml/menu.xml`
+- no menu heading `Dlabsit_<Name>::menu` (the module's pages and Configuration
+  under one heading, see `AGENTS.md`)
+- a module that requires Core but is not registered with Core's
+  `ModuleRegistry`, a registration whose `composer_name` differs from
+  `composer.json`, that still sets `version`, or whose `config_section` is not
+  in `system.xml`
 - `ObjectManager::getInstance()` outside `Test/` and `dev/`
 - `setup_version` in `etc/module.xml`
 - `__()` in the code but no `i18n/*.csv` besides `en_US`
