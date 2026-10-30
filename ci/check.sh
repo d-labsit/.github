@@ -185,8 +185,8 @@ check_menu() {
     [ -n "$(files etc/adminhtml/system.xml)" ] && needs_core || return 0
     grep -qs 'parent="Dlabsit_Core::dlabsit"' etc/adminhtml/menu.xml \
         || { echo "admin config without a menu item under Dlabsit_Core::dlabsit (etc/adminhtml/menu.xml)"; return 1; }
-    grep -qsE 'id="Dlabsit_[A-Za-z0-9]+::menu"' etc/adminhtml/menu.xml \
-        || { echo "no menu heading Dlabsit_<Name>::menu with the module's pages and Configuration under it (see AGENTS.md, Admin menu)"; return 1; }
+    grep -qsE 'id="Dlabsit_[A-Za-z0-9]+::dlabsit_menu"' etc/adminhtml/menu.xml \
+        || { echo "no menu heading Dlabsit_<Name>::dlabsit_menu with the module's pages and Configuration under it (see AGENTS.md, Admin menu)"; return 1; }
 }
 
 # The Core dashboard is the module list; its entry must match the module.
