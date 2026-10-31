@@ -280,6 +280,9 @@ check_module_info() {
     section=$(grep -oE 'name="config_section"[^>]*>[[:space:]]*[a-z0-9_]+' <<<"$di" | sed -E 's/.*>[[:space:]]*//')
     [ -z "$section" ] || grep -qs "<section id=\"$section\"" etc/adminhtml/system.xml \
         || { echo "ModuleRegistry config_section \"$section\" is not a <section> in etc/adminhtml/system.xml"; return 1; }
+    [ -z "$section" ] || sed -n '/<group id="dlabsit_info"/,/<\/group>/p' etc/adminhtml/system.xml | tr '\n' ' ' \
+        | grep -q 'type="expanded">1<.*InfoBanner</frontend_model>' \
+        || { echo "section \"$section\" has no open Module Info group at the top: add <group id=\"dlabsit_info\" sortOrder=\"1\"> with <attribute type=\"expanded\">1</attribute> and the Core InfoBanner (magento2-core README)"; return 1; }
 }
 
 check_object_manager() {

@@ -185,7 +185,11 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   `version`: Core reads the installed version from Composer, so the dashboard
   always shows what is really deployed. `name` is the product name, the same
   text as the menu heading. CI checks that the entry exists, that
-  `composer_name` and `name` match and that `config_section` exists. A change to the
+  `composer_name` and `name` match and that `config_section` exists. The
+  section opens with the module info banner (version, "update available",
+  compatibility, links): an expanded `dlabsit_info` group with sortOrder 1
+  whose field uses `Dlabsit\Core\Block\Adminhtml\System\Config\InfoBanner`
+  (Core 1.6+), which CI checks too. A change to the
   module's name, description, requirements or section updates this entry in
   the same pull request.
 - **Documentation**: `README.md` with these headings, in this order: what it
