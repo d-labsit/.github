@@ -40,13 +40,13 @@ repo.magento.com needs credentials the runner does not have. Copy the one from
 `magento2-webp` and adjust the package list and the autoload namespace. A
 module with tests but neither file gets the warning "tests not run in CI".
 
-## Convention checks: warning now, failure later
+## Convention checks (strict since 2026-10-31)
 
-`check.sh` also checks the conventions below. For now they only warn
-(`::warning::` on the pull request), so no module goes red before it is fixed;
-`DLABSIT_CI_STRICT=1` makes them fail. Switch it on in
-`.github/workflows/module-ci.yml` (`env:` of the check step) once every module
-passes.
+`check.sh` also checks the conventions below. CI runs with
+`DLABSIT_CI_STRICT=1` (`.github/workflows/module-ci.yml`), so they fail the
+pull request; locally, without that variable, they only warn. A justified
+exception is marked in the code (`// phpcs:ignore <Sniff> -- <reason>`,
+`// adobe-tg: <reason>`), never by switching strict mode off.
 
 - `etc/db_schema.xml` without `etc/db_schema_whitelist.json`
 - a `version` field in `composer.json` (the tag `vX.Y.Z` is the version)
