@@ -183,8 +183,9 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   `license_tier`, `min_php_version`, `min_magento_version`, `repository_url`,
   `documentation_url`, `config_section`, `sort_order`, `depends_on`. No
   `version`: Core reads the installed version from Composer, so the dashboard
-  always shows what is really deployed. CI checks that the entry exists, that
-  `composer_name` matches and that `config_section` exists. A change to the
+  always shows what is really deployed. `name` is the product name, the same
+  text as the menu heading. CI checks that the entry exists, that
+  `composer_name` and `name` match and that `config_section` exists. A change to the
   module's name, description, requirements or section updates this entry in
   the same pull request.
 - **Documentation**: `README.md` with these headings, in this order: what it
