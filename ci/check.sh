@@ -264,13 +264,17 @@ check_menu() {
 check_module_info() {
     is_core && return 0
     needs_core || return 0
-    local di name section
+    local di name section reg heading
     di=$(cat etc/di.xml etc/adminhtml/di.xml 2>/dev/null | tr '\n' ' ')
     [[ $di == *'Dlabsit\Core\Model\ModuleRegistry'* ]] \
         || { echo "not registered with Dlabsit\\Core\\Model\\ModuleRegistry in etc/di.xml: the module is missing from the dashboard"; return 1; }
     name=$(composer_get name)
     grep -qE "name=\"composer_name\"[^>]*>[[:space:]]*${name}[[:space:]]*<" <<<"$di" \
         || { echo "ModuleRegistry entry: composer_name is not \"$name\""; return 1; }
+    reg=$(sed 's/.*Dlabsit\\Core\\Model\\ModuleRegistry//' <<<"$di" | grep -oE '<item name="name"[^>]*>[^<]*' | head -1 | sed -E 's/.*>[[:space:]]*//; s/[[:space:]]*$//')
+    heading=$(tr '\n' ' ' < etc/adminhtml/menu.xml 2>/dev/null | grep -oE '<add id="Dlabsit_[A-Za-z0-9]+::dlabsit_menu"[^>]*' | grep -oE 'title="[^"]*"' | head -1 | sed -E 's/title="(.*)"/\1/')
+    [ -z "$heading" ] || [ "$reg" = "$heading" ] \
+        || { echo "ModuleRegistry name \"$reg\" differs from the menu heading \"$heading\": use the product name in both"; return 1; }
     ! grep -q 'name="version"' <<<"$di" \
         || { echo "ModuleRegistry entry has \"version\": remove it, Core reads the installed version from Composer"; return 1; }
     section=$(grep -oE 'name="config_section"[^>]*>[[:space:]]*[a-z0-9_]+' <<<"$di" | sed -E 's/.*>[[:space:]]*//')
