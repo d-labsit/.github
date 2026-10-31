@@ -30,6 +30,8 @@ jobs:
       - name: Run ci/check.sh
         env:
           MODULE_CI_DIR: .module-ci
+          # Every module passed the convention checks on 2026-10-31: they now fail, not warn.
+          DLABSIT_CI_STRICT: '1'
         run: bash .module-ci/ci/check.sh
 
   merge-guard:
