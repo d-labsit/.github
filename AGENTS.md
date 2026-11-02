@@ -173,10 +173,35 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   | Legal, tax and invoices | Cookie Consent 500, EU VAT and VIES 510, EU VIES Check 520, Invoice PDF Email 530, Withdrawal button 540 |
   | Store tools | Order Numbers 600, WebP Images 610 |
 
-- **ACL**: one root resource per module under `Dlabsit_Core::dlabsit`, one
-  child per page and one for the config section; the heading uses the root.
-  Never rename an existing ACL id: admin roles store them, and a renamed id
-  silently takes the module away from every restricted role.
+- **ACL** (`etc/acl.xml`, CI `check_acl`): `Magento_Backend::admin` >
+  `Dlabsit_Core::dlabsit` > one module root `Dlabsit_<Name>::<name>` (title =
+  the menu heading, `sortOrder` = the module's number) > one child per page or
+  group of actions, and last `Dlabsit_<Name>::config` for the config section.
+  Every module right sits under that root, also order and shipment actions:
+  the role editor then shows each module in one place. Only Core gives
+  `Dlabsit_Core::dlabsit` a title and order; modules reference it by id. Every
+  own resource has `title` and `translate="title"`.
+  - The menu heading uses the root: Magento saves a checked child together
+    with its parents, so any right of the module shows the heading.
+  - The config section's `<resource>` is the module's own `::config`, never a
+    Magento one (`Magento_Shipping::carriers`): who may edit a courier's API
+    keys is the module's decision. Fields the module adds to `carriers/` or
+    `payment/` stay under Magento's resource there.
+  - Every admin controller sets `ADMIN_RESOURCE` (or inherits it from the
+    module's abstract action); without it Magento falls back to
+    `Magento_Backend::admin` and every admin user may run it. Reading (a grid,
+    a detail page) and changing (accept, cancel, create a voucher) get their own
+    resource where a merchant may want a role that only looks.
+  - A panel or button the module adds to a Magento page (order view, shipment
+    view) carries the same resource as the action it calls: `aclResource` on the
+    layout block, or an `AuthorizationInterface::isAllowed()` check in the plugin
+    that adds the button. Mass actions in Magento's own grids have no ACL hook;
+    their controller refuses.
+  - Never rename or remove an existing ACL id that roles may hold: admin roles
+    store them, and a renamed id silently takes the module away from every
+    restricted role. Moving an id in the tree is safe. When a right is split, a
+    data patch grants the new resources to every role that had the old one
+    (`magento2-shopflix-marketplace`, `GrantPageResourcesToActionRoles`).
 - **Module info (Core dashboard)**: every module registers with
   `Dlabsit\Core\Model\ModuleRegistry` in `etc/di.xml`: `code`, `name`,
   `description`, `composer_name` (exactly the one in `composer.json`),
