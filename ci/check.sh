@@ -260,6 +260,94 @@ check_menu() {
         || { echo "no menu heading Dlabsit_<Name>::dlabsit_menu with the module's pages and Configuration under it (see AGENTS.md, Admin menu)"; return 1; }
 }
 
+# ACL standard (AGENTS.md, ACL): Magento_Backend::admin > Dlabsit_Core::dlabsit
+# (title only in Core) > one module root (= the menu heading's resource) >
+# a child per page and one for the config section. Every own resource a
+# controller, menu item, config section, grid or layout block uses exists here.
+check_acl() {
+    is_core && return 0
+    php <<'PHP'
+<?php
+$fail = [];
+$ls = static fn (string $glob): array => array_filter(explode("\n", (string) shell_exec('git ls-files -- ' . escapeshellarg($glob) . ' 2>/dev/null')));
+$xml = static function (string $f) use (&$fail): ?SimpleXMLElement {
+    $x = @simplexml_load_file($f);
+    if ($x === false) { $fail[] = "$f: not parseable"; return null; }
+    return $x;
+};
+$module = is_file('etc/module.xml') ? (string) ($xml('etc/module.xml')?->module['name'] ?? '') : '';
+if (!str_starts_with($module, 'Dlabsit_')) { exit(0); }
+$own = $module . '::';
+$controllers = array_filter($ls('Controller/Adminhtml/*'), static fn ($f) => str_ends_with($f, '.php'));
+$hasAdmin = $controllers || is_file('etc/adminhtml/system.xml') || is_file('etc/adminhtml/menu.xml');
+if (!is_file('etc/acl.xml')) {
+    if ($hasAdmin) { echo "admin pages or config without etc/acl.xml\n"; exit(1); }
+    exit(0);
+}
+$acl = $xml('etc/acl.xml');
+$defined = [];
+$root = null;
+if ($acl) {
+    foreach ($acl->xpath('//resource') as $r) {
+        $id = (string) $r['id'];
+        if ($id === 'Dlabsit_Core::dlabsit' && (isset($r['title']) || isset($r['sortOrder']))) {
+            $fail[] = 'etc/acl.xml: Dlabsit_Core::dlabsit has a title/sortOrder; only Dlabsit_Core defines them (reference it by id)';
+        }
+        if (!str_starts_with($id, $own)) { continue; }
+        $defined[$id] = true;
+        if ((string) $r['title'] === '' || (string) $r['translate'] !== 'title') {
+            $fail[] = "etc/acl.xml: $id needs a title and translate=\"title\"";
+        }
+    }
+    $roots = $acl->xpath("//resource[@id='Magento_Backend::admin']/resource[@id='Dlabsit_Core::dlabsit']/resource[starts-with(@id,'$own')]");
+    if (count($roots) !== 1) {
+        $fail[] = 'etc/acl.xml: needs exactly one module root ' . $own . '<name> directly under Dlabsit_Core::dlabsit (found ' . count($roots) . ')';
+    } else {
+        $root = (string) $roots[0]['id'];
+        $inRoot = count($roots[0]->xpath('descendant-or-self::resource'));
+        if ($inRoot !== count($defined)) {
+            $fail[] = "etc/acl.xml: every $own* resource sits under the module root $root";
+        }
+    }
+}
+$check = static function (string $where, string $res) use (&$fail, $defined, $own): void {
+    if (str_starts_with($res, $own) && !isset($defined[$res])) { $fail[] = "$where: $res is not in etc/acl.xml"; }
+};
+if (is_file('etc/adminhtml/system.xml') && ($sys = $xml('etc/adminhtml/system.xml'))) {
+    foreach ($sys->xpath('//section') as $s) {
+        if (trim((string) $s->tab) !== 'dlabsit') { continue; }
+        $res = trim((string) $s->resource);
+        if (!str_starts_with($res, $own)) {
+            $fail[] = "etc/adminhtml/system.xml: section {$s['id']} needs its own resource ($own" . 'config), not "' . $res . '"';
+        }
+        $check("section {$s['id']}", $res);
+    }
+}
+if (is_file('etc/adminhtml/menu.xml') && ($menu = $xml('etc/adminhtml/menu.xml'))) {
+    foreach ($menu->xpath('//add') as $a) {
+        $check("menu {$a['id']}", (string) $a['resource']);
+        if (str_ends_with((string) $a['id'], '::dlabsit_menu') && $root !== null && (string) $a['resource'] !== $root) {
+            $fail[] = "etc/adminhtml/menu.xml: heading {$a['id']} uses resource \"{$a['resource']}\"; it uses the module root $root, so every role with one of the module's rights sees it";
+        }
+    }
+}
+foreach ($controllers as $f) {
+    $src = (string) file_get_contents($f);
+    if (preg_match_all("/ADMIN_RESOURCE\s*=\s*['\"]([^'\"]+)/", $src, $m)) {
+        foreach ($m[1] as $res) { $check($f, $res); }
+    } elseif (!preg_match('/^\s*abstract\s+class/m', $src)
+        && preg_match('/\bextends\s+(?:\S*Backend.App.)?Action\b/', $src)) {
+        $fail[] = "$f: admin controller without ADMIN_RESOURCE (it falls back to Magento_Backend::admin: every admin user may run it)";
+    }
+}
+foreach (array_merge($ls('view/adminhtml/ui_component/*.xml'), $ls('view/adminhtml/layout/*.xml')) as $f) {
+    preg_match_all('/(?:<aclResource>|aclResource=")\s*([A-Za-z0-9_]+::[A-Za-z0-9_]+)/', (string) file_get_contents($f), $m);
+    foreach ($m[1] as $res) { $check($f, $res); }
+}
+if ($fail) { echo implode("\n", array_unique($fail)), "\n(see AGENTS.md, ACL)\n"; exit(1); }
+PHP
+}
+
 # The Core dashboard is the module list; its entry must match the module.
 check_module_info() {
     is_core && return 0
@@ -346,6 +434,7 @@ soft "module-core constraint bounded" check_core_constraint
 soft "config under the dlabsit tab" per_module check_config_tab
 soft "menu under Dlabsit_Core::dlabsit" per_module check_menu
 soft "module info on the Core dashboard" per_module check_module_info
+soft "ACL resources (AGENTS.md, ACL)" per_module check_acl
 soft "no ObjectManager::getInstance()" check_object_manager
 soft "no setup_version" check_setup_version
 soft "i18n has a non-en_US locale" per_module check_i18n_locale
