@@ -205,12 +205,13 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   - Moving an id to another parent is **not** free: Laminas applies a role
     rule to the whole subtree in row order, so a parent's deny row can
     override an older allow on the moved child (chicret.gr, #848: the
-    restricted role lost its courier and marketplace rights). Core 1.6.2+
-    repairs this on every `setup:upgrade` (`RoleRepair`: re-saves such a role
-    as Save Role would). A release that moves ids goes out together with Core
-    1.6.2+, and after the deploy the effective rights of every restricted role
-    are checked (`isAllowed()` per role, read-only) against a baseline taken
-    before.
+    restricted role lost its courier and marketplace rights). A release that
+    moves ids ships a data patch that calls Core's
+    `Dlabsit\Core\Model\Acl\RoleRepair::execute()` (Core 1.6.3+), which
+    re-saves such a role as Save Role would. A data patch, not RecurringData:
+    our deploys run `setup:upgrade` only when `setup:db:status` reports a
+    pending patch. Before the deploy take a baseline of every restricted role's
+    effective rights (`isAllowed()` per role, read-only) and compare after.
 - **Module info (Core dashboard)**: every module registers with
   `Dlabsit\Core\Model\ModuleRegistry` in `etc/di.xml`: `code`, `name`,
   `description`, `composer_name` (exactly the one in `composer.json`),
