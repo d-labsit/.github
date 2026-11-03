@@ -199,9 +199,18 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
     their controller refuses.
   - Never rename or remove an existing ACL id that roles may hold: admin roles
     store them, and a renamed id silently takes the module away from every
-    restricted role. Moving an id in the tree is safe. When a right is split, a
-    data patch grants the new resources to every role that had the old one
+    restricted role. When a right is split, a data patch grants the new
+    resources to every role that had the old one
     (`magento2-shopflix-marketplace`, `GrantPageResourcesToActionRoles`).
+  - Moving an id to another parent is **not** free: Laminas applies a role
+    rule to the whole subtree in row order, so a parent's deny row can
+    override an older allow on the moved child (chicret.gr, #848: the
+    restricted role lost its courier and marketplace rights). Core 1.6.2+
+    repairs this on every `setup:upgrade` (`RoleRepair`: re-saves such a role
+    as Save Role would). A release that moves ids goes out together with Core
+    1.6.2+, and after the deploy the effective rights of every restricted role
+    are checked (`isAllowed()` per role, read-only) against a baseline taken
+    before.
 - **Module info (Core dashboard)**: every module registers with
   `Dlabsit\Core\Model\ModuleRegistry` in `etc/di.xml`: `code`, `name`,
   `description`, `composer_name` (exactly the one in `composer.json`),
