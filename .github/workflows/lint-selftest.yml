@@ -1,0 +1,23 @@
+# Self-test of the webshops' front-end lint (lint/frontend.sh): a clean shop
+# passes, broken CSS/HTML fails with the right rule. Runs on the ci-pr org
+# runner, the same box (Node 20 + npm) the shops' PR checks use.
+name: lint-selftest
+
+on:
+  pull_request:
+    paths: ['lint/**', '.github/workflows/lint-selftest.yml']
+  push:
+    branches: [main]
+    paths: ['lint/**', '.github/workflows/lint-selftest.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: [self-hosted, ci-pr]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash lint/test.sh

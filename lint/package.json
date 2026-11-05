@@ -1,0 +1,10 @@
+{
+  "name": "dlabsit-frontend-lint",
+  "private": true,
+  "description": "Pinned front-end lint tools for the webshop PR checks (frontend.sh, Vikunja #48)",
+  "devDependencies": {
+    "html-validate": "10.17.0",
+    "stylelint": "17.16.0",
+    "stylelint-config-recommended": "18.0.0"
+  }
+}

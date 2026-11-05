@@ -12,6 +12,7 @@ Shared tooling for the D-Labs IT Magento 2 modules in this organization.
 | `.github/workflows/module-ci.yml` | Reusable workflow that runs `ci/check.sh` on the self-hosted `ci-pr` org runner. |
 | `templates/` | The `ci.yml` and `CLAUDE.md` every module carries, and `composer-dev.json`: the `require-dev` set (the same as `dlabsit/module-core`). |
 | `SECURITY.md` | Org-wide security policy; GitHub shows it for every repository without its own. |
+| `lint/` | Front-end lint for the webshops (mistlampen.nl, maxprohair.gr, chicret.gr): stylelint on theme/module CSS, html-validate on CMS and blog content. See below. |
 
 Run the checks locally from a module root (inside a Magento dev container):
 
@@ -21,6 +22,37 @@ bash <(curl -fsSL https://raw.githubusercontent.com/d-labsit/.github/main/ci/che
 
 Changing a rule: edit `AGENTS.md` here, then update the block in every module
 (CI on each module fails until its copy matches).
+
+## Front-end lint for the webshops (`lint/`)
+
+Not for the modules (they hold a handful of CSS/JS files, `check.sh` covers them):
+for the three Hyvä webshops, where the theme CSS and the CMS/blog content live
+(Baycan 2026-11-05, Vikunja #48). Each shop's PR checks run it on the `ci-pr` runner:
+
+```yaml
+      - uses: actions/checkout@v4
+        with: { repository: d-labsit/.github, path: .dlabsit-ci }
+      - run: bash .dlabsit-ci/lint/frontend.sh
+```
+
+- **Errors only**, no style opinions: `stylelint-config-recommended` (syntax errors,
+  unknown properties/values/units, duplicates, deprecated properties) with Tailwind v4
+  syntax allowed; `html-validate:standard` on CMS pages, blocks and blog posts.
+- **Every tracked file**, every run (seconds): an old mistake fails the next PR of any
+  file, so the shops start clean and stay clean.
+- **Skipped on purpose:** build output (`*/generated/*`, `web/css/styles.css`) and mail
+  templates (`*/email/*`: split header/footer fragments, table attributes mail clients need).
+  Magento directives (`{{store url="x"}}`) are blanked before HTML validation.
+- **Tools pinned** in `lint/package-lock.json`, installed with `npm ci` once per lockfile
+  into `~/.cache/dlabsit-frontend-lint/` (ci-pr has `npm` from workloads-ansible).
+- **Self-test:** `bash lint/test.sh` (good shop passes, bad CSS/HTML fails with the right
+  rule); `.github/workflows/lint-selftest.yml` runs it on every change to `lint/`.
+
+Run it locally from a shop's repo root (Node 20+, npm):
+
+```bash
+git clone -q --depth 1 https://github.com/d-labsit/.github /tmp/dlabsit-ci && bash /tmp/dlabsit-ci/lint/frontend.sh
+```
 
 ## phpstan and phpunit in CI
 
