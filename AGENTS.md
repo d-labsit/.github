@@ -169,7 +169,7 @@ modules comply, CI runs with `DLABSIT_CI_STRICT=1` and the warnings fail.
   | Marketplaces | eBay 100, eMAG 110, Shopflix 120, Skroutz 130, Trendyol 140 |
   | Shipping | BOX NOW 200, Courier Center 210, ELTA Courier 220, GLS Label 230 |
   | Checkout and payment | Cash on delivery and pickup 300, Gift Card 303, Gift Wrapping 305, Hyvä Checkout 310 |
-  | Marketing and feeds | GA4 Data Layer 400, Tag Manager 410, Meta Pixel 415, Omnisend 420, SEO 430, XML Feed 440 |
+  | Marketing and feeds | GA4 Data Layer 400, Google Customer Reviews 405, Tag Manager 410, Meta Pixel 415, Omnisend 420, SEO 430, XML Feed 440 |
   | Legal, tax and invoices | Cookie Consent 500, EU VAT and VIES 510, EU VIES Check 520, Invoice PDF Email 530, Withdrawal button 540 |
   | Store tools | Order Numbers 600, WebP Images 610 |
 
