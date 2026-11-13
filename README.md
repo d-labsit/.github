@@ -10,7 +10,7 @@ Shared tooling for the D-Labs IT Magento 2 modules in this organization.
 | `CONTRIBUTING.md`, `pull_request_template.md` | How to contribute to a module, and the checklist every pull request shows. GitHub uses them for every module in the organization without its own. |
 | `ci/module-run.sh` | Default phpstan/phpunit run for a module that ships `composer.ci.json` but no `dev/ci/run.sh`. |
 | `.github/workflows/module-ci.yml` | Reusable workflow that runs `ci/check.sh` on the self-hosted `ci-pr` org runner. |
-| `templates/` | The `ci.yml` and `CLAUDE.md` every module carries, and `composer-dev.json`: the `require-dev` set (the same as `dlabsit/module-core`). |
+| `templates/` | The `ci.yml` and `CLAUDE.md` every module carries, and `composer-dev.json`: the `require-dev` set (the same as `dlabsit/module-core`). `dependabot.yml`: the D-Labs standard for dependency updates in every repo (see below). |
 | `SECURITY.md` | Org-wide security policy; GitHub shows it for every repository without its own. |
 | `lint/` | Front-end lint for the webshops (mistlampen.nl, maxprohair.gr, chicret.gr): stylelint on theme/module CSS, html-validate on CMS and blog content. See below. |
 
@@ -22,6 +22,25 @@ bash <(curl -fsSL https://raw.githubusercontent.com/d-labsit/.github/main/ci/che
 
 Changing a rule: edit `AGENTS.md` here, then update the block in every module
 (CI on each module fails until its copy matches).
+
+## Dependency updates (Dependabot)
+
+`templates/dependabot.yml` is the standard for every D-Labs repo, in both
+`d-labsit` and `dlabsnl` (Vikunja #981): monthly, minor + patch grouped per
+ecosystem, every major its own PR, 7-day cooldown, no labels. Dependabot alerts
+and security updates are switched on for every repo; security fixes come
+immediately, outside the monthly batch.
+
+- **Module repos get no `dependabot.yml`.** A module has a `composer.json`
+  without a lock and a `ci.yml` that only calls `module-ci.yml@main`, so there is
+  nothing to pin. The actions those modules run are updated here, by this
+  repo's own `.github/dependabot.yml`.
+- **`lint/`** is updated by the same file. A lint major can add rules: before
+  merging, the PR must pass `lint-selftest` and `frontend.sh` must stay clean on
+  mistlampen.nl, maxprohair.gr and chicret.gr (run it there, old next to new).
+- **Private Composer registries** (the Magento shops) need a `registries:` block
+  and Dependabot secrets, otherwise the update job fails with "egress not
+  allowlisted" and opens no PR at all.
 
 ## Front-end lint for the webshops (`lint/`)
 
