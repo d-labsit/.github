@@ -1,0 +1,81 @@
+# D-Labs standard for dependency updates (Vikunja #981). Copy to
+# .github/dependabot.yml in every repo that has something to update, keep one
+# block per ecosystem the repo really uses, and delete the rest.
+#
+# Rules behind it:
+# - monthly: one batch of PRs a month per repo, not a constant stream.
+# - minor + patch grouped into one PR per ecosystem; every major its own PR,
+#   because a major is the one that needs testing.
+# - cooldown 7 days: a release must be a week old before it is proposed.
+#   Hijacked npm/PyPI releases are usually pulled within days. Security updates
+#   ignore the cooldown and come immediately.
+# - no labels: a label that does not exist in the repo makes Dependabot comment
+#   instead of opening a clean PR.
+# - Magento module repos (composer.json without a lock, ci.yml only calls
+#   module-ci.yml) get NO dependabot.yml: there is nothing to pin there. Their
+#   actions are updated here, in d-labsit/.github.
+# - private Composer registries (repo.magento.com, Hyvä, packages.dlabsit.nl, ...)
+#   must be listed under registries:, with Dependabot secrets
+#   (gh secret set --app dependabot), or the composer update fails with
+#   "egress not allowlisted".
+version: 2
+updates:
+  - package-ecosystem: composer        # composer.json + composer.lock
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      composer-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: npm             # package.json + package-lock.json
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: pip             # requirements*.txt / pyproject.toml
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      pip-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: docker          # FROM lines in Dockerfile
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: github-actions  # uses: in .github/workflows
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(deps)"

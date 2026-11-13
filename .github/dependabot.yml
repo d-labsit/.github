@@ -1,0 +1,34 @@
+# Dependency updates for this repo, built from templates/dependabot.yml (the
+# D-Labs standard, Vikunja #981). Monthly; minor + patch grouped into one PR per
+# ecosystem, every major its own PR. Security updates come straight away.
+version: 2
+updates:
+  # The pinned front-end lint tools of the webshop PR checks. A new major can add
+  # rules, so its PR must stay green on the lint-selftest *and* on the three shops
+  # before it is merged (README, "Front-end lint").
+  - package-ecosystem: npm
+    directory: /lint
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      lint-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # The actions module-ci.yml and lint-selftest.yml use, so every module and
+  # shop that calls them is covered from here.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(deps)"
