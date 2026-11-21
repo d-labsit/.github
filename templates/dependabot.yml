@@ -3,7 +3,8 @@
 # block per ecosystem the repo really uses, and delete the rest.
 #
 # Rules behind it:
-# - monthly: one batch of PRs a month per repo, not a constant stream.
+# - weekly on Wednesday (#1058): one batch of PRs a week per repo, not a
+#   daily stream (the cooldown holds releases back a week anyway).
 # - minor + patch grouped into one PR per ecosystem; every major its own PR,
 #   because a major is the one that needs testing.
 # - cooldown 7 days: a release must be a week old before it is proposed.
@@ -23,7 +24,8 @@ updates:
   - package-ecosystem: composer        # composer.json + composer.lock
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: wednesday
     cooldown:
       default-days: 7
     groups:
@@ -36,7 +38,8 @@ updates:
   - package-ecosystem: npm             # package.json + package-lock.json
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: wednesday
     cooldown:
       default-days: 7
     groups:
@@ -49,7 +52,8 @@ updates:
   - package-ecosystem: pip             # requirements*.txt / pyproject.toml
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: wednesday
     cooldown:
       default-days: 7
     groups:
@@ -62,7 +66,8 @@ updates:
   - package-ecosystem: docker          # FROM lines in Dockerfile
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: wednesday
     cooldown:
       default-days: 7
     commit-message:
@@ -71,7 +76,8 @@ updates:
   - package-ecosystem: github-actions  # uses: in .github/workflows
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: wednesday
     cooldown:
       default-days: 7
     groups:

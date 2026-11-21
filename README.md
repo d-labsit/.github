@@ -26,10 +26,10 @@ Changing a rule: edit `AGENTS.md` here, then update the block in every module
 ## Dependency updates (Dependabot)
 
 `templates/dependabot.yml` is the standard for every D-Labs repo, in both
-`d-labsit` and `dlabsnl` (Vikunja #981): monthly, minor + patch grouped per
+`d-labsit` and `dlabsnl` (Vikunja #981): weekly on Wednesday (#1058), minor + patch grouped per
 ecosystem, every major its own PR, 7-day cooldown, no labels. Dependabot alerts
 and security updates are switched on for every repo; security fixes come
-immediately, outside the monthly batch.
+immediately, outside the weekly batch.
 
 - **Module repos get no `dependabot.yml`.** A module has a `composer.json`
   without a lock and a `ci.yml` that only calls `module-ci.yml@main`, so there is

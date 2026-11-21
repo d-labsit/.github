@@ -9,7 +9,8 @@ updates:
   - package-ecosystem: npm
     directory: /lint
     schedule:
-      interval: monthly
+      interval: weekly
+      day: wednesday
     cooldown:
       default-days: 7
     groups:
@@ -24,7 +25,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: wednesday
     cooldown:
       default-days: 7
     groups:
